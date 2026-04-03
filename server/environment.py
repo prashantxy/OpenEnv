@@ -6,9 +6,9 @@ class IncidentEnvironment:
 
     def reset(self):
         self.state = {
-            "cpu": random.randint(30, 60),
-            "latency": random.randint(100, 300),
-            "errors": random.randint(0, 5)
+            "cpu": random.randint(40, 60),
+            "latency": random.randint(150, 300),
+            "errors": random.randint(0, 3)
         }
         return self.state
 
@@ -23,41 +23,56 @@ class IncidentEnvironment:
 
         fix = action.get("fix", "ignore")
 
-        # ---- Simulate system dynamics ----
-        self.state["cpu"] += random.randint(-5, 15)
-        self.state["latency"] += random.randint(-20, 40)
-        self.state["errors"] += random.randint(-1, 3)
+        # ---- SYSTEM NATURAL DEGRADATION (IMPORTANT) ----
+        # system always tends to worsen
+        self.state["cpu"] += random.randint(5, 15)
+        self.state["latency"] += random.randint(10, 50)
+        self.state["errors"] += random.randint(0, 2)
+
+        # ---- APPLY ACTION EFFECTS (STRONG IMPACT) ----
+        if fix == "scale":
+            self.state["cpu"] -= 30
+            self.state["latency"] -= 60
+
+        elif fix == "restart":
+            self.state["errors"] -= 8
+            self.state["latency"] -= 40
 
         # clamp values
         self.state["cpu"] = max(0, min(100, self.state["cpu"]))
         self.state["latency"] = max(50, min(1000, self.state["latency"]))
         self.state["errors"] = max(0, min(50, self.state["errors"]))
 
-        # ---- Apply action effects ----
-        if fix == "scale":
-            self.state["cpu"] -= 20
-            self.state["latency"] -= 50
-
-        elif fix == "restart":
-            self.state["errors"] = max(0, self.state["errors"] - 5)
-            self.state["latency"] -= 30
-
-        # ---- Reward function ----
+        # ---- REWARD FUNCTION (STRONG SIGNALS) ----
         reward = 0
 
-        # penalize bad system
-        reward -= self.state["cpu"] * 0.02
-        reward -= self.state["latency"] * 0.001
-        reward -= self.state["errors"] * 0.5
+        # heavy penalties
+        if self.state["cpu"] > 80:
+            reward -= 15
+        if self.state["latency"] > 500:
+            reward -= 15
+        if self.state["errors"] > 10:
+            reward -= 20
 
-        # bonus for good actions
-        if fix == "scale" and self.state["cpu"] < 70:
-            reward += 2
+        # reward stability
+        if self.state["cpu"] < 60 and self.state["errors"] < 5:
+            reward += 10
 
-        if fix == "restart" and self.state["errors"] < 5:
-            reward += 2
+        # penalize bad decisions
+        if fix == "scale" and self.state["cpu"] < 50:
+            reward -= 8
 
-        # ---- Done condition ----
-        done = self.state["errors"] > 40 or self.state["cpu"] > 95
+        if fix == "restart" and self.state["errors"] < 3:
+            reward -= 8
+
+        # slight penalty for doing nothing under stress
+        if fix == "ignore" and (self.state["cpu"] > 80 or self.state["errors"] > 10):
+            reward -= 10
+
+        # ---- DONE CONDITION ----
+        done = self.state["cpu"] > 95 or self.state["errors"] > 30
+
+        if done:
+            reward -= 50  # strong failure penalty
 
         return self.state, reward, done, {}
