@@ -1,0 +1,9 @@
+name: incident-env
+entrypoint: server.app:app
+
+description: AI On-Call Engineer RL Environment
+
+actions:
+  - restart_db
+  - scale_api
+  - do_nothing
