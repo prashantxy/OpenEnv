@@ -1,22 +1,27 @@
 from pydantic import BaseModel
 from typing import List, Dict
 
-# Action
+# ---- ACTION ----
 class IncidentAction(BaseModel):
-    action_type: str  # restart_db, scale_api, etc.
+    fix: str  # "scale", "restart", "ignore"
 
-# Observation (returned after step/reset)
+
+# ---- OBSERVATION ----
 class IncidentObservation(BaseModel):
     cpu: float
     latency: float
-    error_rate: float
-    services: Dict[str, str]
-    logs: List[str]
+    errors: float
+
     reward: float = 0.0
     done: bool = False
 
-# State (full internal state)
+
+# ---- STATE ----
 class IncidentState(BaseModel):
+    cpu: float
+    latency: float
+    errors: float
+
     step_count: int
     total_reward: float
     episode_id: str

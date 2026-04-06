@@ -1,5 +1,6 @@
-from openenv import EnvClient
-from models import IncidentAction, IncidentObservation, IncidentState
+from openenv.core.client import EnvClient
+from server.models import IncidentAction, IncidentObservation, IncidentState
+
 
 class IncidentEnvClient(
     EnvClient[IncidentAction, IncidentObservation, IncidentState]

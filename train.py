@@ -1,8 +1,10 @@
 import random
 from collections import defaultdict
-from server.environment import IncidentEnvironment
 
-env = IncidentEnvironment()
+from client import IncidentEnv
+
+# connect to running OpenEnv server
+env = IncidentEnv(base_url="http://localhost:8000").sync()
 
 ACTIONS = ["scale", "restart", "ignore"]
 
@@ -10,12 +12,11 @@ ACTIONS = ["scale", "restart", "ignore"]
 Q = defaultdict(lambda: {a: 0 for a in ACTIONS})
 
 # hyperparameters
-alpha = 0.1   # learning rate
-gamma = 0.9   # discount factor
-epsilon = 0.2 # exploration
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.2
 
 def get_state_key(state):
-    # discretize state (important)
     return (
         state["cpu"] // 10,
         state["latency"] // 100,
@@ -25,7 +26,11 @@ def get_state_key(state):
 episodes = 50
 
 for ep in range(episodes):
-    state = env.reset()
+
+    # ---- RESET (OpenEnv style) ----
+    result = env.reset()
+    state = result["observation"]
+
     state_key = get_state_key(state)
     total_reward = 0
 
@@ -37,7 +42,13 @@ for ep in range(episodes):
         else:
             action = max(Q[state_key], key=Q[state_key].get)
 
-        next_state, reward, done, _ = env.step(action)
+        # ---- STEP (OpenEnv style) ----
+        result = env.step(action)
+
+        next_state = result["observation"]
+        reward = result["reward"]
+        done = result["done"]
+
         next_key = get_state_key(next_state)
 
         # Q-learning update
