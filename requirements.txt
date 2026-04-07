@@ -1,9 +1,6 @@
-openenv-core==0.2.2
-
 fastapi
-uvicorn[standard]
+uvicorn
 gradio
 pydantic
-
-requests
-numpy
+openenv-core
+httpx>=0.28.1
