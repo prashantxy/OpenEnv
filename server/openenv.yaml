@@ -1,5 +1,5 @@
-name: rl-incident-env
-description: RL environment for incident management
+name: rl-incident-management
+description: RL environment for real-world incident mitigation (CPU, latency, errors)
 
 server:
   url: http://127.0.0.1:8000
@@ -8,3 +8,15 @@ environment:
   reset_endpoint: /reset
   step_endpoint: /step
   state_endpoint: /state
+
+tasks:
+  - id: easy
+    description: Keep CPU under control
+  - id: medium
+    description: Reduce errors and latency
+  - id: hard
+    description: Fully stabilize system
+
+evaluation:
+  metrics:
+    - score

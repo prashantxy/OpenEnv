@@ -1,66 +1,95 @@
 import random
+import os
 from collections import defaultdict
 from client import IncidentEnvClient
 
-from client import create_client
-
-env = create_client()
+env = IncidentEnvClient()
 
 ACTIONS = ["scale", "restart", "ignore"]
 
-# Q-table
 Q = defaultdict(lambda: {a: 0.0 for a in ACTIONS})
 
-# hyperparameters
 alpha = 0.1
 gamma = 0.9
 epsilon = 0.2
-
 episodes = 50
 
 
-def get_state_key(state):
+def get_state_key(obs):
     return (
-        int(state.cpu) // 10,
-        int(state.latency) // 100,
-        int(state.error_rate) // 5
+        obs.cpu // 10,
+        obs.latency // 50,
+        obs.error_rate
     )
 
 
-for ep in range(episodes):
+# ✅ SAVE FUNCTION (OUTSIDE LOOPS)
+def save_to_python_file(Q, episodes, avg_reward):
+    os.makedirs("data", exist_ok=True)  # ensure folder exists
 
-    result = env.reset()
-    state = result.observation
-    state_key = get_state_key(state)
+    with open("data/learned_data.py", "w") as f:
+        f.write("# Auto-generated learning data\n\n")
 
-    total_reward = 0
+        f.write(f"Q_TABLE = {dict(Q)}\n\n")
 
-    for step in range(50):
+        f.write("TRAINING_STATS = {\n")
+        f.write(f"    'episodes': {episodes},\n")
+        f.write(f"    'avg_reward': {avg_reward}\n")
+        f.write("}\n")
 
-        # epsilon-greedy
-        if random.random() < epsilon:
-            action = random.choice(ACTIONS)
-        else:
-            action = max(Q[state_key], key=Q[state_key].get)
 
-        result = env.step({"action_type": action})
+# ---- TRAINING ----
+for task in ["easy", "medium", "hard"]:
+    print(f"\n=== Training on {task} ===")
 
-        next_state = result.observation
-        reward = result.reward
-        done = result.done
+    total_reward_all = 0
 
-        next_key = get_state_key(next_state)
+    for ep in range(episodes):
 
-        # Q-learning update
-        best_next = max(Q[next_key].values())
-        Q[state_key][action] += alpha * (
-            reward + gamma * best_next - Q[state_key][action]
+        result = env.reset(task=task)
+        state = result.observation
+        state_key = get_state_key(state)
+
+        total_reward = 0
+
+        for step in range(50):
+
+            if random.random() < epsilon:
+                action = random.choice(ACTIONS)
+            else:
+                action = max(Q[state_key], key=Q[state_key].get)
+
+            result = env.step({"fix": action})
+
+            next_state = result.observation
+            reward = result.reward
+            done = result.done
+
+            next_key = get_state_key(next_state)
+
+            if next_key not in Q:
+                Q[next_key] = {a: 0.0 for a in ACTIONS}
+
+            best_next = max(Q[next_key].values())
+
+            Q[state_key][action] += alpha * (
+                reward + gamma * best_next - Q[state_key][action]
+            )
+
+            state_key = next_key
+            total_reward += reward
+
+            if done:
+                break
+
+        total_reward_all += total_reward
+
+        print(
+            f"Episode {ep+1}: Reward = {total_reward}, Score = {result.info.get('score', 0)}"
         )
 
-        state_key = next_key
-        total_reward += reward
+    # ✅ SAVE AFTER EACH TASK
+    avg_reward = total_reward_all / episodes
+    save_to_python_file(Q, episodes, avg_reward)
 
-        if done:
-            break
-
-    print(f"Episode {ep+1}: Total Reward = {total_reward:.2f}")
+print("\n✅ Training complete. Data saved to data/learned_data.py")

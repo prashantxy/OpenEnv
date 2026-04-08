@@ -1,19 +1,19 @@
 from client import IncidentEnvClient
-from server.models import IncidentAction
 
-env = IncidentEnvClient(base_url="http://localhost:8000")
+env = IncidentEnvClient()
 
-with env as client:
-    result = client.reset()
+tasks = ["easy", "medium", "hard"]
+
+for task in tasks:
+    result = env.reset(task=task)
+
     total_score = 0
 
     for _ in range(50):
-        action = IncidentAction(action_type="scale")
-        result = client.step(action)
-
+        result = env.step({"fix": "scale"})  # simple baseline
         total_score += result.info.get("score", 0)
 
         if result.done:
             break
 
-    print("Baseline Score:", total_score)
+    print(f"{task} → Avg Score: {total_score / 50}")
