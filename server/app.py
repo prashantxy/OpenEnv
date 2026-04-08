@@ -22,7 +22,8 @@ def get_state():
 
 # -------- GRADIO UI --------
 def ui_reset():
-    return env.reset()
+    result = env.reset()
+    return result["observation"].model_dump()
 
 def ui_step(action):
     action_map = {0: "scale", 1: "restart", 2: "ignore"}
@@ -37,13 +38,13 @@ def ui_step(action):
     result = env.step(action_dict)
 
     return (
-        result["observation"],
-        result["reward"],
-        result["done"]
-    )
+    result["observation"].model_dump(),
+    result["reward"],
+    result["done"]
+)
 
 with gr.Blocks() as demo:
-    gr.Markdown("# 🚀 RL Incident Control")
+    gr.Markdown("# RL Incident Control")
 
     state_output = gr.JSON(label="State")
     reward_output = gr.Number(label="Reward")

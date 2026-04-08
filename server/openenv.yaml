@@ -1,0 +1,10 @@
+name: rl-incident-env
+description: RL environment for incident management
+
+server:
+  url: http://127.0.0.1:8000
+
+environment:
+  reset_endpoint: /reset
+  step_endpoint: /step
+  state_endpoint: /state

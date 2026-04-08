@@ -1,23 +1,19 @@
 from client import IncidentEnvClient
-from models import IncidentAction
+from server.models import IncidentAction
 
-with IncidentEnvClient(base_url="http://localhost:8000").sync() as env:
+env = IncidentEnvClient(base_url="http://localhost:8000")
 
-    result = env.reset()
-    obs = result.observation
+with env as client:
+    result = client.reset()
+    total_score = 0
 
-    while not obs.done:
-        if obs.error_rate > 0.2:
-            action = "restart_db"
-        elif obs.latency > 400:
-            action = "scale_api"
-        else:
-            action = "do_nothing"
+    for _ in range(50):
+        action = IncidentAction(action_type="scale")
+        result = client.step(action)
 
-        result = env.step(IncidentAction(action_type=action))
-        obs = result.observation
+        total_score += result.info.get("score", 0)
 
-    print("Final reward:", obs.reward)
+        if result.done:
+            break
 
-    state = env.state()
-    print("Steps:", state.step_count)
+    print("Baseline Score:", total_score)

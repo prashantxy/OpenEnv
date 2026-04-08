@@ -6,12 +6,13 @@ class IncidentAction(BaseModel):
     fix: str  # "scale", "restart", "ignore"
 
 
-# ---- OBSERVATION ----
+# models.py
 class IncidentObservation(BaseModel):
     cpu: float
     latency: float
-    errors: float
-
+    error_rate: float
+    services: Dict[str, str]
+    logs: List[str]
     reward: float = 0.0
     done: bool = False
 
